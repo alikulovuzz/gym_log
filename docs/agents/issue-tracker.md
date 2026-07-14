@@ -2,18 +2,28 @@
 
 Issues and PRDs for this repo live as GitHub issues in **`alikulovuzz/gym_log`**.
 
-> **Note on tooling.** The `gh` CLI **is installed**, at `C:\Program Files\GitHub CLI\gh.exe` — but that
-> directory is **not on `PATH`**, so a bare `gh` fails with "command not found". Add it first, then use `gh`
-> normally; it is already authenticated as `alikulovuzz` (scopes: `repo`, `workflow`, `gist`, `read:org`).
+> **Note on tooling.** The `gh` CLI is **installed and on `PATH`** (`C:\Program Files\GitHub CLI\gh.exe`,
+> v2.96.0, installed via Chocolatey) and is **already authenticated** as `alikulovuzz` (scopes: `repo`,
+> `workflow`, `gist`, `read:org`). Just use it:
 >
 > ```powershell
-> $env:Path += ";C:\Program Files\GitHub CLI"
 > gh issue list --repo alikulovuzz/gym_log --state open
 > ```
 >
 > An earlier version of this doc claimed `gh` was unavailable and prescribed raw `curl` against the REST
-> API. That was a false negative caused by the missing `PATH` entry. The `curl` route still works if you
-> need it — a token is in Git Credential Manager, retrievable without printing it:
+> API. That was a **false negative**: `gh` was present but its directory was missing from `PATH`. Both are
+> now fixed.
+>
+> ⚠️ **If `gh` reports "command not found", do not conclude it is missing.** A long-running shell caches its
+> environment at start, so a session that began before the install still has a stale `PATH`. Confirm against
+> the live machine PATH before believing the tool is absent:
+>
+> ```powershell
+> $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+> ```
+>
+> The `curl` route below still works if you ever need it — a token is in Git Credential Manager, retrievable
+> without printing it:
 >
 > ```bash
 > export GH_TOKEN=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill | sed -n 's/^password=//p')
