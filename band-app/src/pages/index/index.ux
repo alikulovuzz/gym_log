@@ -1,0 +1,75 @@
+<template>
+  <div class="page">
+    <text class="brand">GYMLOG</text>
+    <text class="ok">IT RUNS</text>
+    <text class="tag">{{buildTag}}</text>
+    <div class="btn" onclick="bump">
+      <text class="btnText">TAP {{count}}</text>
+    </div>
+  </div>
+</template>
+
+<script>
+import buildInfo from '../../common/build-info'
+
+export default {
+  private: {
+    buildTag: buildInfo.tag,
+    count: 0
+  },
+
+  onShow() {
+    console.log('[gymlog] onShow, build=' + buildInfo.tag)
+  },
+
+  bump() {
+    this.count = this.count + 1
+    console.log('[gymlog] tap ' + this.count)
+  }
+}
+</script>
+
+<style>
+.page {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #d81b60;
+}
+
+.brand {
+  font-size: 56px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.ok {
+  font-size: 72px;
+  color: #ffeb3b;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.tag {
+  font-size: 40px;
+  color: #ffffff;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.btn {
+  width: 400px;
+  height: 120px;
+  margin-top: 40px;
+  border-radius: 20px;
+  background-color: #ffffff;
+  justify-content: center;
+  align-items: center;
+}
+
+.btnText {
+  font-size: 44px;
+  color: #d81b60;
+  text-align: center;
+}
+</style>
