@@ -3,3 +3,7 @@
 /node_modules
 /dist
 /build
+
+# Release signing keys. This repo is public — never commit these.
+# Losing them may mean the band can no longer update the app in place.
+/sign
