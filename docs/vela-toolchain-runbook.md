@@ -155,7 +155,7 @@ Not yet ruled out: the band simply blanking its screen on idle (`MiWearScreen` r
 `keepon_enabled:false`, and it does log `screen_user_activity` when the app is started).
 
 **This is unresolved and it blocks any visual UI work** — see
-[#10](https://github.com/alikulovuzz/gym_log/issues/10).
+[Make the Vela emulator actually render the app's UI](https://github.com/alikulovuzz/gym_log/issues/13).
 
 ### Gotcha: installs do not survive a cold boot
 
