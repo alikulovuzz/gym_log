@@ -135,27 +135,59 @@ is literally `qemu-system-armel`. On an x86_64 Windows host that means QEMU soft
 translation — emulation, not virtualisation. In practice it was fine: cold boot to
 `Vela_Band10 started successfully` took **~10 seconds**.
 
-### Open gotcha: the panel renders black
+### Resolved gotcha: the native window is black, but the guest DOES render
 
-The app installs, launches and reaches `Page ready` — but the emulator's device panel paints
-**black**. The window (a shaped, transparent skin window) shows the pill bezel correctly; the
-212×520 display area inside it stays blank.
-
-Evidence it is a *rendering* problem, not an app problem:
-
-- `quickapp_state_trans: [launching] -> [toFG] -> [forground]`, then
-  `Page ready page_info:name:pages/index` and `DomComponent doMapWidget ready`.
-- No JS errors of any kind in the log.
-- The guest logs `miwear_fb_anim_draw_start: miwear fb draw fail` and
-  `startup_anim_callback: startup anim draw fail` during boot — the framebuffer is failing to
-  draw before our app even starts.
-- Relaunching with `-gpu swiftshader_indirect` did not clear it.
-
-Not yet ruled out: the band simply blanking its screen on idle (`MiWearScreen` reports
-`keepon_enabled:false`, and it does log `screen_user_activity` when the app is started).
-
-**This is unresolved and it blocks any visual UI work** — see
+**The black panel is a host-side GL *presentation* defect, not a rendering failure.** The guest
+renders the UI perfectly into its framebuffer; the emulator's on-screen window just fails to
+present it on this Windows host. Resolved in
 [Make the Vela emulator actually render the app's UI](https://github.com/alikulovuzz/gym_log/issues/13).
+
+What the native emulator window shows (`![black](vela-render-evidence/native-window-black.png)`)
+is solid black in the 212×520 panel region — while the emulator's own **gRPC `getScreenshot`**
+returns the real pixels at native 212×520:
+
+- Our compiled app: `![our app](vela-render-evidence/framebuffer-our-app.png)` — the greeting
+  text and green button from `pages/index` (offset to the right only because the stock template
+  ships `designWidth: 480`; set it to `212` for a Band-10-sized layout).
+- The system watchface: `![watchface](vela-render-evidence/framebuffer-watchface.png)` — a fully
+  detailed analog face, proving the framebuffer renders rich UI.
+
+Ruled out along the way:
+
+- **Not idle screen-blanking.** gRPC reports the display *active* with content; `getScreenshot`
+  returns an empty image only when the display is genuinely off. So `keepon_enabled:false` is a
+  red herring here.
+- **Not the GPU mode.** The native window is black under **both** `-gpu swiftshader_indirect`
+  **and** `-gpu host`. Switching modes does not fix presentation.
+- `miwear_fb_anim_draw_start: miwear fb draw fail` fires under every configuration during boot;
+  it is a guest boot-animation log line, not the cause of the black window.
+
+**How to see the panel during UI development.** Launch the emulator with a gRPC port and capture
+the framebuffer:
+
+```bash
+# 1. launch with a gRPC port (any free port)
+emulator.exe -vela -avd Vela_Band10 -gpu swiftshader_indirect -no-snapshot -grpc 8554
+# 2. capture the panel (bundled helper; needs band-app/node_modules on the path)
+cd band-app && NODE_PATH=./node_modules node tools/capture-panel.js panel.png
+```
+
+`getScreenshot` returns one frame; the proto also exposes `streamScreenshot` (a live frame
+stream) and `sendTouch` / `sendKey` / `sendMouse` for input — a full remote channel. See
+`band-app/tools/capture-panel.js` and `lib/emulator_controller.proto`.
+
+**Known limitation — touch coordinates are mis-scaled.** `sendTouch` events *do* reach the guest
+(LVGL `indev_pointer_proc`), but the emulator delivers them in a normalized `0..32767` absolute
+space and the guest driver treats those as raw pixels (log: `X is 16383 ... Y is 30246 which is
+greater than hor./ver. res`), so taps land off-panel. Visual layout verification (the actual
+blocker for band-UI work) does not need touch; interactive tapping in the emulator currently does
+not work without pre-scaling coordinates.
+
+**Install caveat.** `adb push` of the `.rpk` to this emulated NuttX target is unreliable
+(`adb: error: failed to read copy response`, file does not land), and reinstalling after
+`pm uninstall` did not succeed in this session. Treat emulator install as flaky; this is an
+install-path concern (see [#7](https://github.com/alikulovuzz/gym_log/issues/7)), separate from
+rendering.
 
 ### Gotcha: installs do not survive a cold boot
 
